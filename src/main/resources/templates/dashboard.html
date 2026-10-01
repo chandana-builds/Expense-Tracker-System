@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Expense Tracker</title>
+    <!-- Include Bootstrap & Icons & Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+<div class="d-flex min-vh-100">
+    <!-- Sidebar -->
+    <aside class="app-sidebar p-3 d-flex flex-column flex-shrink-0 text-white">
+        <div class="d-flex align-items-center gap-2 mb-4 px-2">
+            <div class="bg-primary rounded-3 p-2 d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;">
+                <i class="bi bi-wallet2 fs-5"></i>
+            </div>
+            <div>
+                <span class="fs-5 fw-bold tracking-tight text-white d-block lh-1">SpendWise</span>
+                <small class="text-secondary" style="font-size: 0.72rem;">Expense Tracker</small>
+            </div>
+        </div>
+
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a th:href="@{/dashboard}" class="nav-link active">
+                    <i class="bi bi-grid-1x2"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/expenses}" class="nav-link">
+                    <i class="bi bi-arrow-left-right"></i> Transactions
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/budgets}" class="nav-link">
+                    <i class="bi bi-pie-chart"></i> Budgets & Goals
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/categories}" class="nav-link">
+                    <i class="bi bi-tags"></i> Categories
+                </a>
+            </li>
+        </ul>
+
+        <hr class="border-secondary opacity-25">
+
+        <!-- User Profile -->
+        <div class="p-2 bg-dark bg-opacity-50 rounded-3 mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary bg-opacity-25 text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <i class="bi bi-person-fill fs-5"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <span class="d-block text-white fw-semibold text-truncate small" th:text="${user.fullName}">Alex Morgan</span>
+                    <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;" th:text="'@' + ${user.username}">@demo</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary-custom btn-sm" data-bs-toggle="modal" data-bs-target="#quickAddModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Transaction
+            </button>
+            <a th:href="@{/logout}" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
+        <header class="navbar navbar-expand border-bottom px-4 py-3 bg-body-tertiary">
+            <div class="container-fluid p-0">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="m-0 fw-bold">Executive Financial Dashboard</h5>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-light rounded-circle p-2 border" id="themeToggleBtn" type="button" title="Switch Theme">
+                        <i class="bi bi-moon-stars-fill"></i>
+                    </button>
+                    <a th:href="@{/expenses/export}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-download me-1"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow-1 p-4">
+            <!-- 1. KPI Metrics Grid -->
+            <div class="row g-4 mb-4">
+                <!-- Net Balance -->
+                <div class="col-xl-3 col-sm-6">
+                    <div class="glass-card stat-widget hover-lift">
+                        <div>
+                            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">Total Balance</span>
+                            <div class="stat-value text-primary mt-1" th:text="'$' + ${#numbers.formatDecimal(summary.totalBalance, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                            <small class="text-muted"><i class="bi bi-shield-check text-success"></i> Across all accounts</small>
+                        </div>
+                        <div class="stat-icon-wrapper stat-icon-primary">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Income -->
+                <div class="col-xl-3 col-sm-6">
+                    <div class="glass-card stat-widget hover-lift">
+                        <div>
+                            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">Monthly Income</span>
+                            <div class="stat-value text-success mt-1" th:text="'$' + ${#numbers.formatDecimal(summary.currentMonthIncome, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                            <small class="text-muted"><i class="bi bi-arrow-up-right text-success"></i> Current month</small>
+                        </div>
+                        <div class="stat-icon-wrapper stat-icon-success">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Expenses -->
+                <div class="col-xl-3 col-sm-6">
+                    <div class="glass-card stat-widget hover-lift">
+                        <div>
+                            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">Monthly Expenses</span>
+                            <div class="stat-value text-danger mt-1" th:text="'$' + ${#numbers.formatDecimal(summary.currentMonthExpense, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                            <small class="text-muted"><i class="bi bi-arrow-down-right text-danger"></i> Outflow</small>
+                        </div>
+                        <div class="stat-icon-wrapper stat-icon-danger">
+                            <i class="bi bi-credit-card"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Net Savings -->
+                <div class="col-xl-3 col-sm-6">
+                    <div class="glass-card stat-widget hover-lift">
+                        <div>
+                            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">Net Savings</span>
+                            <div class="stat-value text-info mt-1" th:text="'$' + ${#numbers.formatDecimal(summary.currentMonthSavings, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+                            <small class="text-muted">
+                                <span class="badge bg-success bg-opacity-10 text-success fw-bold" th:text="${summary.savingsRate} + '% Saved'">0% Saved</span>
+                            </small>
+                        </div>
+                        <div class="stat-icon-wrapper stat-icon-warning">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Charts Section -->
+            <div class="row g-4 mb-4">
+                <!-- Monthly Cash Flow Trends (Chart.js) -->
+                <div class="col-lg-8">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Income vs Expense Trends</h6>
+                                <small class="text-secondary">Historical 6-month financial performance</small>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold">
+                                <i class="bi bi-graph-up me-1"></i> Cash Flow
+                            </span>
+                        </div>
+                        <div style="height: 320px;">
+                            <canvas id="monthlyTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Breakdown (Chart.js Doughnut) -->
+                <div class="col-lg-4">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Expense by Category</h6>
+                                <small class="text-secondary">Current month spending</small>
+                            </div>
+                            <a th:href="@{/expenses}" class="btn btn-sm btn-link p-0 text-decoration-none">View All</a>
+                        </div>
+                        <div style="height: 320px; position: relative;">
+                            <canvas id="categoryBreakdownChart"></canvas>
+                            <div id="categoryBreakdownChartPlaceholder" class="d-none text-center py-5 text-muted">
+                                <i class="bi bi-pie-chart fs-1 d-block mb-2"></i>
+                                No expenses logged this month yet.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Budgets Watch & Recent Transactions -->
+            <div class="row g-4">
+                <!-- Active Budget Trackers -->
+                <div class="col-lg-5">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Budget Watch</h6>
+                                <small class="text-secondary">Monthly category thresholds</small>
+                            </div>
+                            <a th:href="@{/budgets}" class="btn btn-sm btn-outline-primary rounded-pill">Manage</a>
+                        </div>
+
+                        <div th:if="${budgetStatuses.empty}" class="text-center py-4 text-muted">
+                            <i class="bi bi-bullseye fs-2 d-block mb-1"></i>
+                            <p class="small mb-2">No budgets defined for this month.</p>
+                            <a th:href="@{/budgets}" class="btn btn-sm btn-primary-custom">Create Budget Goal</a>
+                        </div>
+
+                        <div th:unless="${budgetStatuses.empty}" class="d-flex flex-column gap-3">
+                            <div th:each="b : ${budgetStatuses}" class="p-3 rounded-3 border bg-body-tertiary">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="cat-dot" th:style="'background-color: ' + ${b.category.color} + ';'"></span>
+                                        <span class="fw-semibold small" th:text="${b.category.name}">Category</span>
+                                    </div>
+                                    <div class="small fw-bold">
+                                        <span th:text="'$' + ${#numbers.formatDecimal(b.spentAmount, 1, 2)}">$0.00</span> /
+                                        <span class="text-muted" th:text="'$' + ${#numbers.formatDecimal(b.monthlyLimit, 1, 2)}">$0.00</span>
+                                    </div>
+                                </div>
+                                <div class="progress-modern">
+                                    <div class="progress-bar"
+                                         role="progressbar"
+                                         th:classappend="${b.overBudget ? 'progress-bar-danger' : (b.percentageSpent > 80 ? 'progress-bar-warning' : 'progress-bar-success')}"
+                                         th:style="'width: ' + ${b.percentageSpent > 100 ? 100 : b.percentageSpent} + '%;'"
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 0.75rem;">
+                                    <span th:text="${b.percentageSpent} + '% spent'">0% spent</span>
+                                    <span th:if="${b.overBudget}" class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Over Budget!</span>
+                                    <span th:unless="${b.overBudget}" th:text="'$' + ${#numbers.formatDecimal(b.remainingAmount, 1, 2)} + ' left'">$0.00 left</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="col-lg-7">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Recent Transactions</h6>
+                                <small class="text-secondary">Latest 5 recorded activities</small>
+                            </div>
+                            <a th:href="@{/expenses}" class="btn btn-sm btn-outline-primary rounded-pill">View All</a>
+                        </div>
+
+                        <div th:if="${recentTransactions.empty}" class="text-center py-4 text-muted">
+                            <i class="bi bi-clock-history fs-2 d-block mb-1"></i>
+                            <p class="small">No recent transactions recorded.</p>
+                        </div>
+
+                        <div th:unless="${recentTransactions.empty}" class="table-responsive">
+                            <table class="table-modern">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Title</th>
+                                        <th>Category</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="tx : ${recentTransactions}">
+                                        <td class="small text-muted" th:text="${tx.transactionDate}">2026-10-01</td>
+                                        <td>
+                                            <div class="fw-semibold text-truncate" style="max-width: 180px;" th:text="${tx.title}">Title</div>
+                                            <small class="text-muted" th:text="${tx.paymentMethod != null ? tx.paymentMethod.displayName : ''}"></small>
+                                        </td>
+                                        <td>
+                                            <span class="cat-pill">
+                                                <span class="cat-dot" th:style="'background-color: ' + ${tx.category.color} + ';'"></span>
+                                                <span th:text="${tx.category.name}">Food</span>
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold"
+                                            th:classappend="${tx.type.name() == 'EXPENSE' ? 'text-danger' : 'text-success'}"
+                                            th:text="${(tx.type.name() == 'EXPENSE' ? '-' : '+') + '$' + #numbers.formatDecimal(tx.amount, 1, 'COMMA', 2, 'POINT')}">
+                                            -$0.00
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="py-3 px-4 border-top text-center text-muted small bg-body-tertiary">
+            SpendWise Enterprise Expense Tracker System &copy; 2026. Built with Spring Boot, Hibernate, MySQL, Bootstrap & jQuery.
+        </footer>
+    </div>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="modal fade" id="quickAddModal" tabindex="-1" aria-labelledby="quickAddModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card">
+            <form th:action="@{/expenses/add}" method="post">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="quickAddModalLabel">
+                        <i class="bi bi-plus-circle text-primary me-2"></i>Record Transaction
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Type</label>
+                        <select name="type" class="form-select" required>
+                            <option value="EXPENSE">Expense (-)</option>
+                            <option value="INCOME">Income (+)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Description / Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Grocery shopping, Client payment" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Amount ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required min="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Category</label>
+                            <select name="categoryId" class="form-select" required>
+                                <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}">Category</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Date</label>
+                            <input type="date" name="transactionDate" class="form-control" th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Payment Method</label>
+                            <select name="paymentMethod" class="form-select">
+                                <option value="CASH">Cash</option>
+                                <option value="CREDIT_CARD">Credit Card</option>
+                                <option value="DEBIT_CARD">Debit Card</option>
+                                <option value="UPI">UPI / PhonePe / GPay</option>
+                                <option value="NET_BANKING">Net Banking</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Add extra context or receipt tags..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Save Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+
+</body>
+</html>
