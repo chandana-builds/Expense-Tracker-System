@@ -14,12 +14,16 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Create a non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+# Create a non-root user and initialize the data directory with write permissions
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/data \
+    && chown -R appuser:appgroup /app \
+    && chmod -R 775 /app/data
 
 # Copy executable jar from builder stage
-COPY --from=build /app/target/*.jar app.jar
+COPY --chown=appuser:appgroup --from=build /app/target/*.jar app.jar
+
+USER appuser
 
 # Render assigns dynamic PORT environment variable (default 8080)
 ENV PORT=8080
